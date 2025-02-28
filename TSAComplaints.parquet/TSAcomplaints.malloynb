@@ -1,0 +1,612 @@
+>>>malloy
+source: USairports is duckdb.table('./us-airports.csv') extend {
+  primary_key: iata_code
+}
+source: airports is duckdb.table('./complaints-by-airport.csv') extend { 
+    primary_key: airport
+    measure: 
+    complaint_total is sum(`count`)
+    dimension: 
+    yearmonth is concat(year_month,'-01')
+    `Year` is yearmonth::date 
+    join_one: USairports with airport
+}
+source: complaints is duckdb.table('./complaints-by-subcategory.csv') extend {
+    primary_key: airport 
+    join_one: airports with airport
+    join_one: USairports with airport
+    measure: 
+    complaint_total is sum(`count`)
+    dimension: 
+    yearmonth is concat(year_month,'-01')
+    `Year` is yearmonth::date
+
+}
+source: airports2 is duckdb.table('./Airports2.csv') extend { 
+  primary_key: Origin_airport 
+  join_one: complaints with Origin_airport
+  join_one: airports with Origin_airport
+  join_one: USairports with Origin_airport
+  measure: 
+  flight_total is sum(Flights)
+  Origin_pop is max(Origin_population)
+  Passenger_total is sum(Passengers)
+  Seat_total is sum(Seats)
+  Dest_pop is max(Destination_population)
+  seats_filled is (Passenger_total / Seat_total) 
+ # segment_map
+  view: routes_map is {
+    group_by:
+      Org_airport_lat
+      Org_airport_long
+      Dest_airport_lat
+      Dest_airport_long
+    aggregate: flight_count is count(Flights)
+  }
+}
+>>>markdown
+This dataset looks at **TSA complaints** from travelers by airport, category, and sub-category.
+
+- **Airport**: The airport column gives us the unique three-letter code for each airport.
+- **Category**: The category column lists the main area the complaint stems from and includes areas such as screening, mishandling of passenger property, and ID requirements.
+- **Sub-category**: This further breaks down these complaints. For example, mishandling of passenger property is broken down into checked baggage or carry-on luggage.
+
+The other CSV file, **complaints-by-airport**, shows how many complaints happen per airport per month, which will also be used in my analysis. 
+
+While complaints are always being taken, they are only reported on periodically by the TSA.
+
+### Goals of the analysis:
+- See which airports generate the most complaints
+- Identify the types of categories that receive the most complaints
+- Analyze trends over time
+>>>markdown
+### How many airports are there in the dataset? 
+>>>malloy
+run: complaints -> {
+    aggregate: airport_count is count(airport)
+}
+>>>markdown
+### How many reports are there? 
+>>>malloy
+run: complaints -> { 
+    aggregate: report_count is count(pdf_report_date)
+}
+>>>markdown
+### How much time does the dataset cover? 
+>>>malloy
+run: complaints -> { 
+    aggregate: startmonth is min(year_month)
+    aggregate: endmonth is max(year_month)
+}
+>>>markdown
+### How many complaints have there been during this time? 
+>>>malloy
+run: airports -> { 
+    aggregate: complaint_count is sum(`count`)
+}
+>>>markdown
+### How many complaints were on each report? 
+>>>malloy
+# bar_chart
+run: complaints -> { 
+    group_by: pdf_report_date
+    aggregate: complaint_count is sum(`count`)
+    order_by: pdf_report_date ASC
+}
+>>>markdown
+### How many complaints were there by month? 
+>>>malloy
+# bar_chart 
+run: complaints -> { 
+    group_by: year_month 
+    aggregate: complaint_count is sum(`count`)
+    order_by: year_month ASC
+    limit: 10000
+}
+>>>markdown
+### Which airports in the dataset had the most complaints? 
+>>>malloy
+run: airports -> { 
+    group_by: USairports.name
+    aggregate: complaint_total is sum(`count`)
+    where: airport != null 
+}
+>>>markdown
+### In 2015? 
+>>>malloy
+run: airports -> { 
+    group_by: USairports.name
+    aggregate: complaint_total is sum(`count`)
+    where: airport != null AND `Year` = @2015
+}
+>>>markdown
+### What were the most common types of complaints by category?
+>>>malloy
+run: complaints -> { 
+    group_by: clean_cat 
+    aggregate: complaint_total is sum(`count`)
+    limit: 1000
+}
+>>>markdown
+### What was the most common type of complaint at LAX?
+>>>malloy
+run: complaints -> { 
+    group_by: clean_cat 
+    aggregate: complaint_total is sum(`count`)
+    where: airport = 'LAX'
+}
+>>>markdown
+### What are the most common type of complaints for each airport? 
+>>>malloy
+run: complaints -> { 
+    group_by: USairports.name
+    aggregate: complaint_total is sum(`count`)
+    where: airport != null 
+    nest: by_airport is { 
+        group_by: clean_cat
+        aggregate: complaint_total is sum(`count`)
+    }
+}
+>>>markdown
+### What are the most common types of complaints by sub-category? 
+>>>malloy
+run: complaints -> { 
+    group_by: clean_subcat
+    aggregate: complaint_total is sum(`count`)
+
+}
+>>>markdown
+### What are the most common type of complaints by category and sub-category? 
+>>>malloy
+run: complaints -> { 
+    group_by: clean_cat
+    aggregate: complaint_total is sum(`count`)
+    nest: by_airport is { 
+        group_by: clean_subcat
+        aggregate: complaint_total is sum(`count`)
+    }
+}
+>>>markdown
+### How many complaints in the cleaned category column were original vs. imputed? 
+>>>malloy
+run: complaints -> { 
+    group_by: clean_cat_status
+    aggregate: imputedcount is sum(`count`)
+}
+-- Was interested in this, wasn't sure what imputed meant. 
+>>>markdown
+### Amount of complaints over time 
+>>>malloy
+# line_chart 
+run: airports -> { 
+    group_by: year_month 
+    aggregate: complaint_total is sum(`count`)
+    order_by: year_month ASC
+    limit: 100
+}
+>>>markdown
+### Potential reason for the increase of complaints over time (from Github):
+
+In March 2024, a TSA spokesperson provided comments to **FedScoop** reporter **Rebecca Heilweil**, indicating that (at least) some of the increase in complaints over time can be attributed to the agency making it easier to submit **PreCheck complaints**:
+
+The spokesperson said that changes to several platforms and customer service tools are responsible for the rise in complaints. In **May 2021**, the agency created a new **TSA PreCheck webform** that saw complaints increase around **79%** in the following four months. That **August**, the agency deployed messaging enhancements that, in combination with the new online form, saw complaints grow by **62%** in the subsequent four months. (Switching to **Salesforce** for the TSA Contact Center at the end of 2020 also meant that the airport field in the data
+>>>markdown
+### Amount of complaints over time per airport
+>>>malloy
+
+run: airports -> { 
+    group_by: USairports.name
+    aggregate: complaint_total is sum(`count`)
+    where: airport != null
+    # bar_chart
+    nest: by_airport is { 
+        group_by: `Year`.year 
+        aggregate: `Complaint Total` is sum(`count`)
+
+    }
+}
+>>>markdown
+### Similar function looking at percent of complaints per year
+>>>malloy
+run: airports -> { 
+   group_by: 
+   `Year`.year
+   aggregate: 
+   complaint_total
+   # percent
+   `Percent Of Complaints` is complaint_total / all(complaint_total)
+}
+>>>markdown
+### How many complaints happened pre-Covid? How about once the COVID pandemic began? 
+>>>malloy
+run: airports -> {  
+    where: `Year` = @2015-01 to @2020-03 
+    aggregate: complaint_total 
+    }
+>>>malloy
+run: airports -> {  
+    where: `Year` = @2020-03 to @2024-04 
+    aggregate: complaint_total 
+    }
+>>>markdown
+### Complaints per month for each
+>>>malloy
+run: airports -> { 
+    group_by: `Pre Covid` is (562362/62)
+    `Post Covid` is (487137/49)
+
+}
+>>>markdown
+### Percent of complaints by airport
+>>>malloy
+run: complaints -> { 
+    group_by: USairports.name
+    aggregate: 
+    complaint_total
+    # percent
+    `Percent of Complaints` is complaint_total / all(complaint_total)
+    where: airport != null
+}
+>>>markdown
+### Are there more complaints on average in certain months?
+>>>malloy
+# bar_chart
+run: airports -> {
+    group_by: month_only is month(`Year`)
+    aggregate: complaint_total is avg(`count`)
+    order_by: month_only ASC
+}
+>>>markdown
+### How many people had complaints about civil rights? Has it increased over time? 
+>>>malloy
+
+run: complaints -> { 
+    group_by: clean_cat, `Year`.year
+    where: clean_cat = 'Civil Rights'
+    aggregate: complaint_total
+    -- 2018 and 2019 seem to have been the years with the most civil rights complaints
+}
+>>>markdown
+### How many complaints has Spokane International Airport (GEG) received? 
+>>>malloy
+run: airports -> { 
+    group_by: USairports.name
+    aggregate: complaint_total
+    where: airport = 'GEG'
+}
+>>>markdown
+\>>>markdown
+### Which airports have received the least amount of complaints? 
+>>>malloy
+run: airports -> {
+    group_by: USairports.name
+    aggregate: complaint_total 
+    order_by: complaint_total ASC
+    limit: 1000000 
+}
+>>>markdown
+### Dataset Overview  
+
+The dataset I chose is a record of **3.5 million+ US domestic flights** from **1990 to 2009**. It has been taken from the **OpenFlights** website, which has a huge database of different traveling mediums across the globe.  
+
+Obviously, it doesn't reflect the same time frame as the first dataset I used, and this was a real frustration for me, as I wanted to be able to analyze the same time period to compare to the **TSA complaints dataset** and draw more conclusions.  
+
+I looked for other airport-related datasets all over the internet and couldn't find anything that I felt would be useful for analysis. I also tried going on the **OpenFlights** website and downloading the same data as the author to reflect the right time period, but I'm not sure where the author got the data from. It was very surprising to me that there wasn't more useful data available on **air traffic**.  
+
+**If anyone knows of any good data sources I could potentially use for analysis, please let me know!**  
+
+### Analysis Plan  
+
+Regardless, I went ahead with this dataset. I'll include relevant data I can find for updated years, such as:  
+- How many flights there were  
+- How many passengers rode on planes  
+- Busiest airports
+
+My goal with this analysis is to see **how well airport size, flight count, and passenger count reflect the amount of TSA complaints**.  
+
+I also want to:  
+- Identify the **most common flight routes** for this period  
+- Analyze whether **airport size reflects populations**  
+- Examine how the creation of the **TSA in 2001 (after 9/11)** affected flying patterns  
+>>>markdown
+### What were the most common flight routes in this dataset?
+>>>malloy
+run: airports2 -> { 
+    group_by: USairports.name, Origin_airport, Destination_airport
+    aggregate: seat_count is sum(Seats)
+    limit: 10000
+}
+>>>markdown
+### Busiest Air Routes  
+
+Busiest air routes are calculated by the **amount of seats on flights** on each route.  
+You can compare these routes to the busiest routes in **October 2024**.  
+
+| Rank | Route  | Cities | Seats |
+|------|----------------|--------------------------------|---------|
+| 1 | **LAX-SFO** | Los Angeles – San Francisco | 319,064 |
+| 2 | **LAS-LAX** | Las Vegas – Los Angeles | 303,394 |
+| 3 | **ATL-MCO** | Atlanta – Orlando | 288,226 |
+| 4 | **LGA-ORD** | New York LaGuardia – Chicago | 283,592 |
+| 5 | **JFK-LAX** | New York JFK – Los Angeles | 282,426 |
+| 6 | **HNL-OGG** | Honolulu – Kahului | 281,910 |
+| 7 | **DEN-PHX** | Denver – Phoenix | 277,221 |
+| 8 | **ATL-LGA** | Atlanta – New York LaGuardia | 261,878 |
+| 9 | **DEN-LAS** | Denver – Las Vegas | 247,461 |
+| 10 | **DEN-ORD** | Denver – Chicago O’Hare | 239,841 |
+
+As you can see, many of the **busiest routes** are similar to **2009** and feature the same airports.  
+
+
+>>>markdown
+### Which airports serviced the most flights? 
+>>>malloy
+run: airports2 -> { 
+    group_by: Origin_airport, USairports.name
+    aggregate: flight_count is sum(Flights)
+    limit: 10000
+}
+>>>markdown
+### For 2009?
+>>>malloy
+run: airports2 -> { 
+    where: Fly_date = @2009
+    group_by: Origin_airport, USairports.name
+    aggregate: flight_count is sum(Flights)
+    limit: 10000
+}
+>>>markdown
+### Which airports serviced the most passengers in 2009? 
+>>>malloy
+run: airports2 -> { 
+    group_by: Origin_airport, USairports.name
+    aggregate: `Passenger Count` is sum(Passengers)
+    where: Fly_date.year = @2009
+   
+}
+>>>markdown
+### What about from 2000 to 2009? 
+>>>malloy
+run: airports2 -> { 
+    group_by: Origin_airport, USairports.name
+    aggregate: `Passenger Count` is sum(Passengers)
+    where: Fly_date.year = @2000 to @2009
+   
+}
+>>>markdown
+### Passenger Traffic Comparison (2024)  
+
+In comparison to **2024**, the busiest airports by passenger volume are:  
+
+- **Atlanta International Airport** – 50.9 million passengers  
+- **Los Angeles International Airport** – 40.9 million passengers  
+- **Dallas-Fort Worth International Airport** – 39.2 million passengers  
+- **Denver International Airport** – 37.8 million passengers  
+- **Chicago O’Hare International Airport** – 35.8 million passengers  
+- **New York JFK International Airport** – 30.8 million passengers  
+- **Orlando International Airport** – 28 million passengers  
+- **Las Vegas Harry Reid International Airport** – 27.8 million passengers  
+- **Charlotte/Douglas International Airport** – 25.8 million passengers  
+
+** 7 of the top 10 busiest airports on the list were also on it in 2009. 
+>>>markdown
+### How many passengers rode airplanes each year? 
+>>>malloy
+# line_chart 
+run: airports2 -> { 
+    group_by: Fly_date.year 
+    aggregate: `Passenger Count` is sum(Passengers)
+}
+>>>markdown
+### A steady increase of passengers until 2001, it dropped off and then by 2004 was steadily climbing again. 
+>>>markdown
+### The airports with the most flights in 2009 as a map 
+>>>malloy
+run: airports2 -> {
+  where: Fly_date.year = @2009
+  group_by: Origin_airport, USairports.name
+  aggregate: flight_count is count(Seats)
+  nest: routes_map
+}
+>>>markdown
+### What states have the most originating flights?
+>>>malloy
+run: airports2 -> { 
+    group_by: Origin_state 
+    aggregate: `Total Flights` is sum(Flights)
+}
+>>>markdown
+### How has this changed over time? 
+>>>malloy
+
+run: airports2 -> { 
+    group_by: Fly_date.year 
+    nest: by_state is {
+    group_by: Origin_state
+    aggregate: `Total Flights` is sum(Flights)
+    limit: 5
+    }
+
+}
+>>>markdown
+### How many flights and passengers did GEG service during this time period? 
+>>>malloy
+run: airports2 -> { 
+    group_by: Origin_airport, USairports.name
+    where: Origin_airport = 'GEG'
+    aggregate: 
+    `Total Flights` is sum(Flights)
+    `Total Passengers` is sum(Passengers)
+
+}
+>>>markdown
+### How do amount of flights from an airport compare to their population?
+>>>malloy
+run: airports2 -> { 
+    group_by: USairports.name, 
+    aggregate: 
+    `Total Flights` is sum(Flights)
+    Population is max(Origin_population)
+    
+
+    
+}
+>>>markdown
+### What airports serviced the most passengers relative to their population in 2009?
+>>>malloy
+run: airports2 -> { 
+    group_by: USairports.name, Origin_state
+    aggregate: 
+    # percent 
+    percent_comp_population is Passenger_total / Origin_pop
+    where: Fly_date.year = @2009
+}
+>>>markdown
+### What about destinations for the whole time period?
+>>>malloy
+run: airports2 -> { 
+    group_by: Destination_airport, Destination_state
+    aggregate: 
+    # percent 
+    percent_with_population is Passenger_total / Dest_pop
+
+}
+>>>markdown
+### How much distance was flown each year? 
+>>>malloy
+# line_chart
+run: airports2 -> { 
+    group_by: Fly_date.year 
+    aggregate: flightdistance is sum(Distance)
+}
+>>>markdown
+### Looking at the 2009 flights per airport, and 2015 complaints per airport, how many complaints occurred for each flight? A lower number = more complaints
+>>>malloy
+run: airports2 -> { 
+    group_by: 
+    JFKcount is 123319 / 2344
+    LAXcount is 193248 / 2207 
+    ATLcount is 397110 / 1742 
+    MCOcount is 116495 / 1704 
+    LAScount is 146454 / 1587 
+    EWRcount is 145189 / 1508 
+    MIAcount is 69485 / 1447 
+    PHXcount is 165914 / 1290 
+    FLLcount is 73041 / 1217 
+    ORDcount is 336305 / 1196 
+}
+>>>markdown
+Example: for every 52 flights out of JFK, there is 1 TSA complaint. 
+
+If we could figure out the flight data for 2015-2024, we could determine which airports have the most complaints relative to how many flights they service. As I've seen by looking at other flight data, the amount of flights per airport per year doesn't experience that much variation. 
+
+Miami is the worst for how many complaints they receive compared to flights they service. 1 complaint for every 48 flights. 
+>>>markdown
+### Now I will look at the same thing but do it on a per passenger basis
+>>>malloy
+run: airports2 -> { 
+    group_by: 
+    JFKcount is 10753397 / 2344
+    LAXcount is 19095792 / 2207 
+    ATLcount is 34404233 / 1742 
+    MCOcount is 13485520 / 1704 
+    LAScount is 16800571 / 1587 
+    EWRcount is 10569887  / 1508 
+    MIAcount is 7573089 / 1447 
+    PHXcount is 16304363 / 1290 
+    FLLcount is 8127518 / 1217 
+    ORDcount is 24490363 / 1196 
+}
+>>>markdown
+In this area, JFK performed the worst, with 1 complaint for every 4,588 passengers. 
+>>>markdown
+### On average, what percent of seats were filled on flights? 
+>>>malloy
+run: airports2 -> { 
+    aggregate: 
+    # percent 
+    seats_filled is (Passenger_total / Seat_total) 
+
+}
+>>>markdown
+### What about for the biggest airports? 
+>>>malloy
+run: airports2 -> { 
+    group_by: 
+    Origin_airport, USairports.name
+    aggregate: 
+    # percent 
+    seats_filled
+    Passenger_total
+    limit: 10000 
+    order_by: Passenger_total DESC 
+    
+    
+    
+
+}
+>>>markdown
+A good load factor is between 70-80%, and airports with higher load factors will be more profitable for airlines. 
+>>>markdown
+### How did 9/11 affect load factors? 
+>>>malloy
+# bar_chart
+run: airports2 -> { 
+    group_by: 
+    Fly_date.year
+    aggregate: 
+    # percent 
+    seats_filled is (Passenger_total / Seat_total) 
+    order_by: seats_filled ASC
+} 
+>>>markdown
+### What is the average flight distance in this dataset? 
+>>>malloy
+run: airports2 -> { 
+    aggregate: 
+    avgflightlength is avg(Distance)
+}
+>>>markdown
+### What is the average flight distance for airports with the most flights? 
+>>>malloy
+run: airports2 -> { 
+    group_by: Origin_airport
+    aggregate: 
+    flight_total
+    avgflightlength is avg(Distance)
+    order_by: flight_total DESC
+}
+>>>markdown
+### What are the longest average flight distances?
+>>>malloy
+run: airports2 -> { 
+    group_by: Origin_airport, USairports.name
+    aggregate: 
+    `Average Flight Length` is avg(Distance)
+    order_by: `Average Flight Length` DESC
+}
+>>>markdown
+HCA Florida Airport North is a hospital with an emergency room that serves the area around Hans Christian Andersen Airport (HCA) in Denmark. HIK, HNL, ANC are airports in Hawaii and Alaska. MDD is an airport in Texas 
+>>>markdown
+### What is the shortest flight in the dataset? 
+>>>malloy
+run: airports2 -> { 
+    group_by: Origin_airport, Destination_airport
+    aggregate: 
+    minflightlength is min(Distance)
+    where: Distance = 2
+}
+>>>markdown
+Flight between Ketchikan International Airport in Alaska and a nearby seaplane base. 
+>>>markdown
+### What are the longest and shortest flights for each airport?
+>>>malloy
+run: airports2 -> { 
+    group_by: Origin_airport, USairports.name
+    aggregate: 
+    maxflightlength is max(Distance)
+    minflightlength is min(Distance)
+    where: Distance != 0
+    limit: 10000 
+}
+>>>malloy
