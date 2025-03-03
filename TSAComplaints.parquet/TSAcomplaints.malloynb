@@ -60,6 +60,45 @@ While complaints are always being taken, they are only reported on periodically 
 - Identify the types of categories that receive the most complaints
 - Analyze trends over time
 >>>markdown
+### Which airports in the dataset had the most complaints? 
+>>>malloy
+run: airports -> { 
+    group_by: USairports.name
+    aggregate: complaint_total is sum(`count`)
+    where: airport != null 
+}
+>>>markdown
+### What were the most common types of complaints by category?
+>>>malloy
+run: complaints -> { 
+    group_by: clean_cat 
+    aggregate: complaint_total is sum(`count`)
+    limit: 1000
+}
+>>>markdown
+### How many complaints were there by month? 
+>>>malloy
+# bar_chart 
+run: complaints -> { 
+    group_by: year_month 
+    aggregate: complaint_count is sum(`count`)
+    order_by: year_month ASC
+    limit: 10000
+}
+>>>markdown
+### What are the most common type of complaints for each airport? 
+>>>malloy
+run: complaints -> { 
+    group_by: USairports.name
+    aggregate: complaint_total is sum(`count`)
+    where: airport != null 
+    nest: by_airport is { 
+        group_by: clean_cat
+        aggregate: complaint_total is sum(`count`)
+        limit: 3
+    }
+}
+>>>markdown
 ### How many airports are there in the dataset? 
 >>>malloy
 run: complaints -> {
@@ -94,24 +133,6 @@ run: complaints -> {
     order_by: pdf_report_date ASC
 }
 >>>markdown
-### How many complaints were there by month? 
->>>malloy
-# bar_chart 
-run: complaints -> { 
-    group_by: year_month 
-    aggregate: complaint_count is sum(`count`)
-    order_by: year_month ASC
-    limit: 10000
-}
->>>markdown
-### Which airports in the dataset had the most complaints? 
->>>malloy
-run: airports -> { 
-    group_by: USairports.name
-    aggregate: complaint_total is sum(`count`)
-    where: airport != null 
-}
->>>markdown
 ### In 2015? 
 >>>malloy
 run: airports -> { 
@@ -120,32 +141,12 @@ run: airports -> {
     where: airport != null AND `Year` = @2015
 }
 >>>markdown
-### What were the most common types of complaints by category?
->>>malloy
-run: complaints -> { 
-    group_by: clean_cat 
-    aggregate: complaint_total is sum(`count`)
-    limit: 1000
-}
->>>markdown
 ### What was the most common type of complaint at LAX?
 >>>malloy
 run: complaints -> { 
     group_by: clean_cat 
     aggregate: complaint_total is sum(`count`)
     where: airport = 'LAX'
-}
->>>markdown
-### What are the most common type of complaints for each airport? 
->>>malloy
-run: complaints -> { 
-    group_by: USairports.name
-    aggregate: complaint_total is sum(`count`)
-    where: airport != null 
-    nest: by_airport is { 
-        group_by: clean_cat
-        aggregate: complaint_total is sum(`count`)
-    }
 }
 >>>markdown
 ### What are the most common types of complaints by sub-category? 
@@ -210,7 +211,8 @@ run: airports -> {
 >>>malloy
 run: airports -> { 
    group_by: 
-   `Year`.year
+   `Year`.year 
+   where: `Year`.year != @2024
    aggregate: 
    complaint_total
    # percent
