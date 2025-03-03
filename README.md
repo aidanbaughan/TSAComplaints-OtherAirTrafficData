@@ -53,18 +53,23 @@ Additional analyses:
 ## Summary of Findings 
 
 Complaints Per Month 
+
 <img width="418" alt="Screen Shot 2025-03-02 at 8 23 14 PM" src="https://github.com/user-attachments/assets/b7e71a52-fd83-4af9-a29c-553cbc073405" />
 
 Complaints by Airport 
+
 <img width="526" alt="Screen Shot 2025-03-02 at 8 23 45 PM" src="https://github.com/user-attachments/assets/676cc535-4354-4f78-a5f4-2705d9821149" />
 
 Complaints by Airport and Category
+
 <img width="582" alt="Screen Shot 2025-03-02 at 8 24 32 PM" src="https://github.com/user-attachments/assets/510c95ca-00d4-46e9-bfab-207aad01cd0a" />
 
 Complaints by Airport Over Time 
+
 <img width="586" alt="Screen Shot 2025-03-02 at 8 25 51 PM" src="https://github.com/user-attachments/assets/e45ee07a-bdea-425a-bd2b-af61f9e144ed" />
 
 Heat Map Showing Flight Routes 
+
 <img width="584" alt="Screen Shot 2025-03-02 at 8 30 27 PM" src="https://github.com/user-attachments/assets/3c5b1680-5e7b-4b2b-b773-0d8f2ea10b9c" />
 
   
