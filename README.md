@@ -53,19 +53,28 @@ Additional analyses:
 ## Summary of Findings 
 
 
-## Figure - Complaints Per Month  
-![Complaints Per Month](https://github.com/user-attachments/assets/b7e71a52-fd83-4af9-a29c-553cbc073405)  
+## Figure 1 - Complaints Per Month  
+![Complaints Per Month](https://github.com/user-attachments/assets/b7e71a52-fd83-4af9-a29c-553cbc073405) 
 
-## Figure - Complaints by Airport  
-![Complaints by Airport](https://github.com/user-attachments/assets/676cc535-4354-4f78-a5f4-2705d9821149)  
+### Potential reason for the increase of complaints over time:
 
-## Figure - Complaints by Airport and Category  
+In March 2024, a TSA spokesperson provided comments to **FedScoop** reporter **Rebecca Heilweil**, indicating that (at least) some of the increase in complaints over time can be attributed to the agency making it easier to submit **PreCheck complaints**:
+
+The spokesperson said that changes to several platforms and customer service tools are responsible for the rise in complaints. In **May 2021**, the agency created a new **TSA PreCheck webform** that saw complaints increase around **79%** in the following four months. That **August**, the agency deployed messaging enhancements that, in combination with the new online form, saw complaints grow by **62%** in the subsequent four months. 
+
+## Figure 2 - Complaints by Airport   
+<img width="517" alt="Screen Shot 2025-03-05 at 9 08 10 AM" src="https://github.com/user-attachments/assets/45f9975b-e80a-415b-b55b-d17b6259c0a4" />
+Newark Airport (EWR) has a reputation for being one of the worst airports for TSA complaints compared to the number of passengers it serves, and the dataset reflects that. Doing some research online, it seems like the number of TSA complaints is also correlated to average TSA wait times, and this would be an interesting thing to analyze further. 
+
+## Figure 3 - Complaints by Airport and Category  
 ![Complaints by Airport and Category](https://github.com/user-attachments/assets/510c95ca-00d4-46e9-bfab-207aad01cd0a)  
+The most common type of complaint for most of the top airports in the dataset is expedited passenger screening complaints, better known as the TSA precheck complaints. The only airports this wasn't true for in the top 10 were Harry Reid International Airport(LAS) and Miami International Airport (MIA), where the top complaint was mishandling of passenger property. Further analysis shows that the TSA PreCheck Webform has had a significant effect on the number of complaints and has contributed to the increase in expedited passenger screening complaints. 
 
-## Figure - Complaints by Airport Over Time  
-![Complaints by Airport Over Time](https://github.com/user-attachments/assets/e45ee07a-bdea-425a-bd2b-af61f9e144ed)  
+## Figure 4 - Complaints by Airport Over Time  
+![Complaints by Airport Over Time](https://github.com/user-attachments/assets/e45ee07a-bdea-425a-bd2b-af61f9e144ed) 
 
-## Figure - Heat Map Showing Flight Routes  
+
+## Figure 5 - Heat Map Showing Flight Routes  
 ![Heat Map Showing Flight Routes](https://github.com/user-attachments/assets/3c5b1680-5e7b-4b2b-b773-0d8f2ea10b9c)  
 
 
