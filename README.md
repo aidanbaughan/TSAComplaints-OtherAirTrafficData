@@ -72,11 +72,11 @@ The most common type of complaint for most of the top airports in the dataset is
 
 ## Figure 4 - Complaints by Airport Over Time  
 ![Complaints by Airport Over Time](https://github.com/user-attachments/assets/e45ee07a-bdea-425a-bd2b-af61f9e144ed) 
-
+Most airports have experienced similar patterns in the amount of complaints over time, where complaints stayed around the same range from 2015-2020, before dropping off massively due to the COVID-19 Pandemic. But, the number of complaints soared to new heights starting in 2022, likely due to the increase of precheck complaints. Some airports, such as the Newark Liberty International Airport have seen a **Massive** increase in these years, while other airports have had more modest increases. 
 
 ## Figure 5 - Heat Map Showing Flight Routes  
 ![Heat Map Showing Flight Routes](https://github.com/user-attachments/assets/3c5b1680-5e7b-4b2b-b773-0d8f2ea10b9c)  
-
+This was a cool visual I wanted to show, it was not that useful for analysis, but more just my curiosity. I wanted to see where flights from major airports were flying most often, and this was an interesting way to show it. 
 
 ## Code 
 This repository contains one Malloy code file:
