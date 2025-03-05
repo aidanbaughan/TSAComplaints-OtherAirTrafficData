@@ -64,6 +64,7 @@ The spokesperson said that changes to several platforms and customer service too
 
 ## Figure 2 - Complaints by Airport   
 <img width="517" alt="Screen Shot 2025-03-05 at 9 08 10 AM" src="https://github.com/user-attachments/assets/45f9975b-e80a-415b-b55b-d17b6259c0a4" />
+
 Newark Airport (EWR) has a reputation for being one of the worst airports for TSA complaints compared to the number of passengers it serves, and the dataset reflects that. Doing some research online, it seems like the number of TSA complaints is also correlated to average TSA wait times, and this would be an interesting thing to analyze further. 
 
 ## Figure 3 - Complaints by Airport and Category  
